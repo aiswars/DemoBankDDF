@@ -1,0 +1,190 @@
+first part is in TestDataProject-- handling data, excelsheets, dataproviders, runmodes in excel sheet, multiple testngxml- suitexml files
+this one is the second part
+
+testdata, runner same folders
+utilities - all files except testparametrization
+
+base pkg> TestBase.java to initiiaze everything
+when testing on grid , there are chance that more than one test run on same thread, OR 3 tests run parallely on 3 browser/3nodes then it may happen that 2 tests on one one, one test on another node and still one node might be emepty
+to avoid this situation RemoteDriver - accepts the url of the test - distirbuts on the grid - ThreadLocal Class 
+
+
+setUp() - only properties file loading , no browser invoking
+browser reading from excel sheet in this project - parametrized
+
+Since this is doing parallel execution ThreadLocal class is used to get each thread to each tests
+ThreadLocal class for the webDriver instance- RemoteWebDriver
+
+//to open browser - deciding which browser from excel sheet
+@AfterSuite-	public void openBrowser(String browser) {
+DesiredCapabilities cap=null;//DesiredCapabilities class refereence
+		
+setWebDriver(driver);//calling - set this driver instance with the remotedriver dr-which has object reference of ThreaLocal class with url of the hub
+getDriver().manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);//why getDriver().--running on unique thread
+		
+setWebDriver() & getDriver() methods- to get unique thread 
+
+public void navigate(String url){ //after browser launching naviagate to the url
+	
+copy all pther utlity methods clcik,type,iselementpresent form the previous base class-TestDataProject
+replaced  driver with  getdriver()
+
+------------------------------------------
+testcases :  AddCustomer >>BankManager testcases
+
+1. AddCustomer.java testcase in BankManager testcases -bankmanager login > AddCustomer
+2. OpenAccounttest.java class in bankmanagertestcases -- bankmanager login > openAccount
+
+design the first testcase lec78
+AddCustomer testcase in BankManager testcases
+testdata>> BankManagerSuite
+excelReader class
+DataProvider - hashtable
+DataProvider>>> runmode from excelsheet-passed thrrough hashtable, other suitename and method name passed directly
+browser - openBrowser(data.get("browser"));//from excelsheet 	//browser name from excelsheet - testcases call this method get the browsername through Hashtable get()
+	
+url- navigate("testsiteurl"); //properties file
+
+1. lect 78 to execute testdata in excel sheet parallely (data of one test) use parallel in dataproviders - check this agin
+2. lect 80 to execute java classes in parallely, add these javaclasses in testng xml file in  <test>s and use <parallel> in testng xml file 80
+
+	to execute tests in parallel in dataproviders	
+DataProviders.java>> @DataProvider(name="bankManagerDP",parallel=true)// to execute tests in parallel in dataproviders
+	public void openBrowser(String browser) {//distributing tests parallely over different nodes
+bankmagaersuite.xml>>	Run AS testngSuite
+added 10 user data on excelsheet and executed in docker - 10 tests on different browsers paralleley
+================================================
+
+ExtentManager in utitlities and ReportsConfig.xml file in resources/extentCOnfig folder
+added timestamp with filename and changed the path to repeorts from maven repeots path
+
+In testbase ExtentRepeorts class
+and ExtentTest class
+
+use this ExtentTest class object to start a test to create the report >> whereevr a test has to be created and get the extent report of that test
+	test = rep.startTest("Add Customer Test"+"   "+data.get("browser")); //testname and the browsername where the test gets executed
+Multithreading issue @2.50 lect80 &79>> extntreport is following the same thread here but as this is paralleltesting so Extent report has also follow separate threads, otherwise extentreports display as some of the tests are failed, as it follows the same thread, wont get the results form the other threads
+	So when creating extentreports for differetn nodes these reports sgould also follow differetn threads- so if threading concept is not used the extentreports will run the test on same thread - will use the EXtent class ref- test on same thread.
+	so to avoid this issue use ThreadLocal class for the extentReports too.
+	public static ThreadLocal<ExtentTest> exTest = new ThreadLocal<ExtentTest>();
+	getters and setters for this thread too
+	all tests following diffeetn threads use getExtTest instead of test
+	
+Teardown()>>  endTest and Fluch()
+reportPass //utility method in base class - to log the passed tests msgs in extentreports
+reportFailure	//utility method in - to log the failed tests msgs in extentreports
+
+
+===================================================================
+testcase
+
+added OpenAccounttest.java class in bankmanagertestcases -- bankmanager login > openAccount
+changed the excel sheetname...
+lect 80 to execute tests <test> in suitexml files parallely use <parallel> in testng xml file 80
+
+there will not be any sequenece in testreports in extent reports as the tst is in parallel in different threads
+
+in multithreading setup should not come in beforesuite as beforesuite executes only once- then the url or other setup things will throw nullpointer exception for any of the threads. only the first thread gets it.
+so remove the beforesuite and use super.setUp();//to invoke setup() method without using BeforeSuite - as this is multithreading
+		in all tests before starting the tests- firstline in the tests
+		so in every tests it will be invoked individually.
+		
+===========================================================================
+
+a project specific to grid architecture to run parallel in grid architecture implement threadlocal ,provide the type of threadlocal to remotewebdriver that need to run parallel webdriver sessions, and then the testcase shoulds also follow different threads , so provide threadlocal to extenttests and wherever the tests has to be created or run give this extenttest that should follow the reference form this extentrports itself
+===================================================================================================================================
+
+adding more tests to the same testcases above.
+
+copy the OR.properties from the project1 - the locators for the webelement
+common utlityes like clcik, type iseleemnt present are already copied to thebase class
+add these in the Addcutomertest and bankligin
+data from excelsheet -type("firstname_CSS",data.get("firstname"));//title of column names in excel sheet-throughDataprovider with hashpmap
+	
+	docker is up and running --6 nodes-- 3 mozilla,3 chrome then Run as tesngsuite - bankmanagersuite.xml file
+executing all 6 tests parallely - in few seconds
+2 testcases with 3 sets of data in excel sheet
+lect82
+
+==================================================================================
+
+
+
+lect83
+cpaturingscreenshot code from project1 and paste in base class or creat a utility package and add in that
+change the driver - getDriver(), removed static from the methodname CpatureScreenshot
+added logs to extentrepirts
+changed the path
+
+and call this in reportFailure
+reportfailure in clcik,type....methods
+make a test fail to see the screnshot - 2nd testcase - so 3 tests failed
+======================================
+lect84
+log4j for parallel threads
+add log4j properties file and add the required code - Logger, Propertyconfigurator - only application log now
+add logs in tests.
+no selenium log now - just only application log
+check the updates for log4j
+
+
+=======================================
+lec 85
+getting thread, browsernames in log4j logs -log4j
+ addLog utility method >> //log.debugmsgs in in addLog utility method - in base class 
+ 	in openBrowser()>> this.browser = browser; //global browser to local browser - to get the browser name in addLog method
+ 	//browser name from excelsheet - testcases call this method get the browsername through Hashtable get()
+			
+getting threadvalue in log4j logs
+--------------------------
+(dr.get()) >>	//System.out.println(dr.get()); to get threadvalue
+getThreadValue - userdefined utility method to split the thread value -public String getThreadValue(Object value){ 
+dr.get()) >> is RemoteDrover type. so return type shouldn't be a string, so returned as Object type and then converted in the method getThreadValue()-userdefined utility method
+//getThreadValue()-userdefined utility method to split the thread value to get only the last part out of 4parts separated by -
+In public String getThreadValue(Object value){ //thread value got from openBrowser() >> getThreadValue(dr.get())
+spliting the thread value and taken only the last part. It should be unique for each tests.
+and passed this to logs -addLog()	
+
+=========================================
+lect 87
+to run thorugh jenkins the project need to be run as maven test
+Maven clean - rports in target folder- check the path of screenshots is set to surefirereports  in target.
+reports wont be generated inside reports folder now onwards
+the repoerts should be same for CaptureScrrenshot method and in the extentMangaer - so changes should reflect in both places.
+
+
+in pom.xml make sure surefireplugin and required textngxml file in <suitexmlfiles> is added!!!
+maven clean >>> clean the target folder
+Maven test
+
+then run through Jenkins
+same steps as project1- jenkins part!! chekc that
+give pom.xml of this project,  goals - clean test
+Publish HTML reports - Reports - HTML directort to archive - give the path of reports folder in the project.
+in 	public static ExtentReports getInstance(){  code-  add jenkins with the report filename- and give jenkins.* in jenkins>reports> index page -- so any files with jenkins in filename(added now in code) will be taken 
+Then save>>  build now
+
+===================================================================
+
+log4j warnings>> when the project is run through maven need to give resources in pom.xml-- so add log4j in <resource> tag in pom.xml
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
